@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UserOp Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2dd4bf;
+            --bg-dark: #1a1a1a;
+            --card-bg: #242424;
+            --text-primary: #ffffff;
+            --text-secondary: #a3a3a3;
+            --border-color: #333333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .title-section {
+            margin-bottom: 2rem;
+        }
+
+        .title-section h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .title-section p {
+            color: var(--text-secondary);
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-box {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+
+        .stat-box h3 {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-box p {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background-color: var(--card-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .search-bar input {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            flex: 1;
+        }
+
+        .search-bar button {
+            background-color: var(--primary);
+            color: var(--bg-dark);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .search-bar button:hover {
+            opacity: 0.9;
+        }
+
+        .operations-list {
+            /* display: grid; */
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .operation-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .operation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .hash-id {
+            font-family: monospace;
+            color: var(--primary);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background-color: rgba(45, 212, 191, 0.1);
+            color: var(--primary);
+        }
+
+        .status-error {
+            background-color: rgba(244, 63, 94, 0.1);
+            color: #f43f5e;
+        }
+
+        .operation-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .detail-item label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-item span {
+            font-family: monospace;
+            font-size: 0.875rem;
+            word-break: break-all;
+        }
+
+        .empty-view {
+            text-align: center;
+            padding: 3rem;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .empty-view h3 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-view p {
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 640px) {
+            .operation-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-bar {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="dashboard">
+        <div class="title-section">
+            <h1>UserOp Monitor</h1>
+            <p>Real-time tracking of user operations</p>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-box">
+                <h3>OPERATIONS</h3>
+                <p>{% raw %}{{ metrics.total_events }}{% endraw %}</p>
+            </div>
+            <div class="stat-box">
+                <h3>REQUESTS</h3>
+                <p>{% raw %}{{ metrics.total_requests }}{% endraw %}</p>
+            </div>
+            <div class="stat-box">
+                <h3>CACHE RATE</h3>
+                <p>{% raw %}{{ ((metrics.cache_hits / (metrics.cache_hits + metrics.cache_misses)) * 100 || 0).toFixed(1) }}%{% endraw %}</p>
+            </div>
+            <div class="stat-box">
+                <h3>LAST UPDATE</h3>
+                <p>{% raw %}{{ formatDate(metrics.last_event_time) }}{% endraw %}</p>
+            </div>
+        </div>
+
+        <div class="search-bar">
+            <input v-model="sender" placeholder="Search by sender address">
+            <input v-model="blockNumber" placeholder="Filter block number">
+            <button @click="fetchEvents">Search</button>
+        </div>
+
+        <div v-if="events.length > 0" class="operations-list">
+            <div v-for="event in events" :key="event.userOpHash" class="operation-card">
+                <div class="operation-header">
+                    <span class="hash-id">{% raw %}{{ event.userOpHash.substring(0, 10) }}...{% endraw %}</span>
+                    <span :class="['status-badge', event.success ? 'status-success' : 'status-error']">
+                        {% raw %}{{ event.success ? 'SUCCESS' : 'FAILED' }}{% endraw %}
+                    </span>
+                </div>
+                <div class="operation-details">
+                    <div class="detail-item">
+                        <label>SENDER</label>
+                        <span>{% raw %}{{ event.sender }}{% endraw %}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>PAYMASTER</label>
+                        <span>{% raw %}{{ event.paymaster }}{% endraw %}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>BLOCK</label>
+                        <span>{% raw %}{{ event.blockNumber }}{% endraw %}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>GAS COST</label>
+                        <span>{% raw %}{{ formatGas(event.actualGasCost) }} ETH{% endraw %}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-else class="empty-view">
+            <h3>No Operations Found</h3>
+            <p>Modify your search criteria or wait for new operations</p>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                events: [],
+                metrics: {
+                    total_requests: 0,
+                    cache_hits: 0,
+                    cache_misses: 0,
+                    total_events: 0,
+                    last_event_time: null
+                },
+                sender: '',
+                blockNumber: ''
+            },
+            methods: {
+                fetchEvents() {
+                    let url = '/events?';
+                    if (this.sender) url += `sender=${this.sender}&`;
+                    if (this.blockNumber) url += `blockNumber=${this.blockNumber}`;
+                    
+                    axios.get(url)
+                        .then(response => {
+                            this.events = response.data.events;
+                        })
+                        .catch(error => {
+                            console.error('Failed to fetch operations:', error);
+                        });
+                },
+                updateMetrics() {
+                    axios.get('/metrics')
+                        .then(response => {
+                            this.metrics = response.data;
+                        })
+                        .catch(error => {
+                            console.error('Failed to update metrics:', error);
+                        });
+                },
+                formatDate(dateString) {
+                    if (!dateString) return 'N/A';
+                    return new Date(dateString).toLocaleString();
+                },
+                formatGas(wei) {
+                    return (wei / 1e18).toFixed(6);
+                }
+            },
+            mounted() {
+                this.fetchEvents();
+                this.updateMetrics();
+                setInterval(this.updateMetrics, 10000);
+            }
+        });
+    </script>
+</body>
+</html>
